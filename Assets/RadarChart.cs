@@ -10,7 +10,15 @@ public class RadarChart : BaseMeshEffect
     static List<UIVertex> tempVertices = new List<UIVertex>();
 
     [SerializeField]
-    public float[] parameters;
+    float[] parameters;
+
+    public float[] Parameters {
+        get { return parameters; }
+        set {
+            parameters = value;
+            this.graphic.SetVerticesDirty();
+        }
+    }
 
     // 0f = 12 o'clock in the watch board
     // plus direction = clockwise direction
@@ -80,7 +88,8 @@ public class RadarChart : BaseMeshEffect
             tempVertices.Add(vertex);
         }
 
-        tempVertices.Add(tempVertices[0]);
+        if(tempVertices.Count > 0)
+            tempVertices.Add(tempVertices[0]);
 
         vertices.Clear();
         for (int i = 0; i < parameters.Length; i++)
