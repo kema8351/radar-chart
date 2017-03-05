@@ -7,29 +7,58 @@ using UnityEngine.UI;
 public class RadarChart : BaseMeshEffect
 {
     static List<UIVertex> tempVertexTriangleStream = new List<UIVertex>();
-    static List<UIVertex> tempVertices = new List<UIVertex>();
+    static List<UIVertex> tempInnerVertices = new List<UIVertex>();
+    static List<UIVertex> tempOuterVertices = new List<UIVertex>();
 
     [SerializeField]
     float[] parameters;
-
-    public float[] Parameters {
+    public float[] Parameters
+    {
         get { return parameters; }
-        set {
-            parameters = value;
-            this.graphic.SetVerticesDirty();
-        }
+        set { parameters = value; this.graphic.SetVerticesDirty(); }
     }
 
     // 0f = 12 o'clock in the watch board
     // plus direction = clockwise direction
     [SerializeField, Range(0f, 360f)]
-    public float startAngleDegree = 0f;
+    float startAngleDegree = 0f;
+    public float StartAngleDegree
+    {
+        get { return startAngleDegree; }
+        set { startAngleDegree = value; this.graphic.SetVerticesDirty(); }
+    }
 
     [SerializeField]
-    public Color32 outerColor = Color.white;
+    Color outerColor = Color.white;
+    public Color OuterColor
+    {
+        get { return outerColor; }
+        set { outerColor = value; this.graphic.SetVerticesDirty(); }
+    }
+
+    [SerializeField, Range(0f, 1f)]
+    float outerRatio = 1f;
+    public float OuterRatio
+    {
+        get { return outerRatio; }
+        set { outerRatio = value; this.graphic.SetVerticesDirty(); }
+    }
 
     [SerializeField]
-    public Color32 centerColor = Color.white;
+    Color innerColor = Color.clear;
+    public Color InnerColor
+    {
+        get { return innerColor; }
+        set { innerColor = value; this.graphic.SetVerticesDirty(); }
+    }
+
+    [SerializeField, Range(0f, 1f)]
+    float innerRatio = 0f;
+    public float InnerRatio
+    {
+        get { return innerRatio; }
+        set { innerRatio = value; this.graphic.SetVerticesDirty(); }
+    }
 
     float? cacheStartAngleDegree = null;
     List<float> cacheSines = new List<float>();
@@ -66,13 +95,8 @@ public class RadarChart : BaseMeshEffect
         Vector2 uUnit = (centerUv.x - vertices[0].uv0.x) * Vector3.right;
         Vector2 vUnit = (centerUv.y - vertices[0].uv0.y) * Vector3.up;
 
-        Color32 outerMultipliedColor = GetMultipliedColor(vertices[0].color, outerColor);
-        Color32 centerMultipliedColor = GetMultipliedColor(vertices[0].color, centerColor);
-
-        UIVertex centerVertex = vertices[0];
-        centerVertex.position = centerPosition;
-        centerVertex.uv0 = centerUv;
-        centerVertex.color = centerMultipliedColor;
+        Color outerMultipliedColor = GetMultipliedColor(vertices[0].color, outerColor);
+        Color innerMultipliedColor = GetMultipliedColor(vertices[0].color, innerColor);
 
         for (int i = 0; i < parameters.Length; i++)
         {
@@ -80,26 +104,49 @@ public class RadarChart : BaseMeshEffect
             float cosine = cacheCosines[i];
             float sine = cacheSines[i];
 
-            UIVertex vertex = vertices[0];
-            vertex.position = centerPosition + (xUnit * cosine + yUnit * sine) * parameter;
-            vertex.uv0 = centerUv + (uUnit * cosine + vUnit * sine) * parameter;
-            vertex.color = outerMultipliedColor;
+            UIVertex outerVertex = vertices[0];
+            float outerParameter = parameter * outerRatio;
+            outerVertex.position = centerPosition + (xUnit * cosine + yUnit * sine) * outerParameter;
+            outerVertex.uv0 = centerUv + (uUnit * cosine + vUnit * sine) * outerParameter;
+            outerVertex.color = outerMultipliedColor;
+            tempOuterVertices.Add(outerVertex);
 
-            tempVertices.Add(vertex);
+            UIVertex innerVertex = vertices[0];
+            float innerParameter = parameter * innerRatio;
+            innerVertex.position = centerPosition + (xUnit * cosine + yUnit * sine) * innerParameter;
+            innerVertex.uv0 = centerUv + (uUnit * cosine + vUnit * sine) * innerParameter;
+            innerVertex.color = innerMultipliedColor;
+            tempInnerVertices.Add(innerVertex);
         }
 
-        if(tempVertices.Count > 0)
-            tempVertices.Add(tempVertices[0]);
+        if (parameters.Length > 0)
+        {
+            tempOuterVertices.Add(tempOuterVertices[0]);
+            tempInnerVertices.Add(tempInnerVertices[0]);
+        }
 
         vertices.Clear();
-        for (int i = 0; i < parameters.Length; i++)
+        if (outerRatio != 0f)
         {
-            vertices.Add(centerVertex);
-            vertices.Add(tempVertices[i]);
-            vertices.Add(tempVertices[i + 1]);
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                vertices.Add(tempInnerVertices[i]);
+                vertices.Add(tempOuterVertices[i]);
+                vertices.Add(tempOuterVertices[i + 1]);
+            }
+        }
+        if (innerRatio != 0f)
+        {
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                vertices.Add(tempOuterVertices[i + 1]);
+                vertices.Add(tempInnerVertices[i + 1]);
+                vertices.Add(tempInnerVertices[i]);
+            }
         }
 
-        tempVertices.Clear();
+        tempOuterVertices.Clear();
+        tempInnerVertices.Clear();
     }
 
     bool NeedsToUpdateCaches()
