@@ -12,10 +12,15 @@ public class RadarChart : BaseMeshEffect
 
     [SerializeField]
     float[] parameters;
-    public float[] Parameters
+    public IEnumerable<float> GetParameters() { return parameters; }
+    public void SetParameters(float[] parameters) { this.parameters = parameters; this.graphic.SetVerticesDirty(); }
+    public float GetParameter(int index) { return index < parameters.Length ? parameters[index] : default(float); }
+    public void SetParameter(int index, float parameter)
     {
-        get { return parameters; }
-        set { parameters = value; this.graphic.SetVerticesDirty(); }
+        if (index >= parameters.Length)
+            return;
+        parameters[index] = parameter;
+        this.graphic.SetVerticesDirty();
     }
 
     // 0f = 12 o'clock in the watch board
